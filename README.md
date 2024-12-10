@@ -1,5 +1,5 @@
 # FOAMSAnalysis
-##1) Description of files<br />
+## 1) Description of files<br />
 1) Sub01-Sub21 contain raw data from each experimental trial, description below<br />
 2) MisoAssessment contains data from misophonia assessments S5 and DMQ, as well as self-diagnosis of misophonia, gender, and age for each participant<br />
 ##2) Description of all variables in the datasets included from FOAMS Website (https://zenodo.org/records/7922615), with the ones kept after cleaning in bold and italics<br />
