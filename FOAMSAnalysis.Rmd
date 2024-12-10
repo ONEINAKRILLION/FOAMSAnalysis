@@ -1,0 +1,169 @@
+---
+title: "data cleaning"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-11-21"
+---
+Load packages
+```{r}
+library(tidyverse)
+library(car)
+library(lsr)
+library(ez)
+library(rstatix)
+library(afex)
+library(emmeans)
+library(effsize)
+```
+
+Read files into R
+```{r reading in files}
+misoTest<-read.csv("/Users/megansurbeck/Desktop/project stuff/MisoAssessments.csv")
+subj1<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub01.csv")
+subj2<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub02.csv")
+subj3<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub03.csv")
+subj4<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub04.csv")
+subj5<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub05.csv")
+subj6<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub06.csv")
+subj7<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub07.csv")
+subj8<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub08.csv")
+subj9<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub09.csv")
+subj10<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub10.csv")
+subj11<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub11.csv")
+subj12<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub12.csv")
+subj13<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub13.csv")
+subj14<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub14.csv")
+subj15<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub15.csv")
+subj16<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub16.csv")
+subj17<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub17.csv")
+subj18<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub18.csv")
+subj19<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub19.csv")
+subj20<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub20.csv")
+subj21<-read.csv("/Users/megansurbeck/Desktop/project stuff/Sub21.csv")
+```
+Combine participants into single dataset
+```{r combining}
+#combine each subject into one dataset
+allSubj<-rbind(subj1, subj2, subj3, subj4, subj5, subj6, subj7, subj8, subj9, subj10, subj11, subj12, subj13, subj14, subj15, subj16, subj17, subj18, subj19, subj20, subj21)
+###remove distractor sound columns
+allSubj<-allSubj[-c(2,5,6,7,8,9)]
+###remove NA tester rows
+allSubj<-allSubj %>% filter(SoundCategory !="NA")
+#include self identification scores->filling in self identifier information from misoTest 
+allSubj <- allSubj %>%
+  mutate(SelfAssess = case_when(
+    Sub <= 1 ~ "2",
+    Sub <= 2 ~ "1",
+    Sub <= 3 ~ "1",
+    Sub <= 4 ~ "3",
+    Sub <= 5 ~ "3",
+    Sub <= 6 ~ "2",
+    Sub <= 7 ~ "1",
+    Sub <= 8 ~ "3",
+    Sub <= 9 ~ "2",
+    Sub <= 10 ~ "2",
+    Sub <= 11 ~ "2",
+    Sub <= 12 ~ "3",
+    Sub <= 13 ~ "2",
+    Sub <= 14 ~ "3",
+    Sub <= 15 ~ "2",
+    Sub <= 16 ~ "2",
+    Sub <= 17 ~ "1",
+    Sub <= 18 ~ "2",
+    Sub <= 19 ~ "2",
+    Sub <= 20 ~ "2",
+    Sub <= 21 ~ "3"))
+##include real assessment scores
+misoTest$S5Sum<-NA
+misoTest$S5Sum <- rowSums(misoTest[, c("S5_Externalizing", "S5_Internalizing", "S5_Impact", "S5_Outburst", "S5_Threat")])
+#merge with dataset
+allSubj <- allSubj %>%
+  mutate(S5Sum= case_when(
+    Sub <= 1 ~ "101",
+    Sub <= 2 ~ "35",
+    Sub <= 3 ~ "134",
+    Sub <= 4 ~ "14",
+    Sub <= 5 ~ "10",
+    Sub <= 6 ~ "124",
+    Sub <= 7 ~ "131",
+    Sub <= 8 ~ "2",
+    Sub <= 9 ~ "8",
+    Sub <= 10 ~ "66",
+    Sub <= 11 ~ "10",
+    Sub <= 12 ~ "74",
+    Sub <= 13 ~ "13",
+    Sub <= 14 ~ "15",
+    Sub <= 15 ~ "27",
+    Sub <= 16 ~ "47",
+    Sub <= 17 ~ "48",
+    Sub <= 18 ~ "45",
+    Sub <= 19 ~ "21",
+    Sub <= 20 ~ "17",
+    Sub <= 21 ~ "30"))
+allSubj$SelfMiso<-NA
+allSubj$MisoStatus<-NA
+class(allSubj$S5Sum)
+allSubj$S5Sum<-as.numeric(allSubj$S5Sum)
+allSubj$MisoStatus<-ifelse(allSubj$S5Sum>87, "1", "0")
+allSubj$SelfMiso<-ifelse(allSubj$SelfAssess==1, "1", "0")
+#working with levels
+levels(as.factor(allSubj$MisoStatus))
+is.factor(allSubj$MisoStatus)
+allSubj$MisoStatus<-factor(allSubj$MisoStatus, levels=c("1", "0"))
+```
+Hypothesis 1: Discomfort levels between sound groups
+```{r hypothesis 1}
+##four sound groups(removed empty sound), Oral_nasal, Non_oral_nasal, White_noise
+##ANOVA-one way
+#this is repeated measures AOV
+##using afex
+h1_afex <- aov_car(AversiveRating ~ SoundCategory + Error(Sub/SoundCategory), 
+                   data = allSubj, 
+                   factors = c("SoundCategory"), 
+                   within = c("SoundCategory"))
+summary(h1_afex)
+
+##post hoc measures: tukeyHSD and etaSquared do not work for afex
+post_hoc1 <- emmeans(h1_afex, pairwise ~ SoundCategory)
+summary(post_hoc1)
+```
+
+Hypothesis 2: Misophonics versus non-Misophonic discomfort in each group
+```{r hypothesis 2}
+#repeated measure ANOVA, misophonic/nonmisophonic, two way
+##afex ANOVA
+h2_afex <- aov_car(AversiveRating ~ SoundCategory * MisoStatus + Error(Sub/SoundCategory), 
+                   data = allSubj, 
+                   within = c("SoundCategory"), 
+                   between = c("MisoStatus"))
+summary(h2_afex)
+##emmeans post-hoc test
+post_hoc2 <- emmeans(h2_afex, pairwise ~ MisoStatus)
+summary(post_hoc2)
+```
+Hypothesis 3: Belief in misophonia reaction change
+```{r}
+##look at avg discomfort per participant w/ misophonic label- t-test
+t.test(AversiveRating~SelfMiso, data=allSubj)
+##people who identify as misophonic do actually have more discomfort across sound categories
+##compute cohen's d
+cohens_d(AversiveRating~SelfMiso,data=allSubj, var.equal= FALSE)
+##small-moderate effect size
+```
+Visualization
+```{r visualization h1}
+#visualizing discomfort across sound groups, h1
+ggplot(allSubj, aes(SoundCategory, AversiveRating))+geom_boxplot(fill="lavender")+theme_classic()+labs(x="Sound Category", y="Discomfort Level", title="Discomfort across Sound Category")
+```
+
+```{r visualization h2}
+#visualization h2-misophonics versus non-misophonics for sound discomfort
+ggplot(allSubj, aes(SoundCategory, AversiveRating, fill=MisoStatus))+geom_boxplot()+theme_classic()+labs(x="Sound Category", y="Discomfort Level", title="Discomfort by Misophonia Diagnosis")
+```
+
+```{r visualization h3}
+##visualization h3-differences in average discomfort for 
+ggplot(allSubj, aes(SelfMiso, AversiveRating))+geom_boxplot(fill="orange")+theme_classic()+labs(x="Self Diagnosis of Misophonia", y="Discomfort Level", title="Differences in Average Discomfort by Self Diagnosis of Misophonia")
+```
+
